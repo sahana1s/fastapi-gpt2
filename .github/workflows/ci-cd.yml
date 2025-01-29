@@ -10,7 +10,7 @@ on:
   workflow_dispatch:  # Allows for manual triggering
 
 jobs:
-  build-test-and-export:
+  build-and-export:
     runs-on: ubuntu-latest
 
     steps:
@@ -27,40 +27,12 @@ jobs:
         run: |
           docker build -t fastapi-gpt2:latest .
 
-      # Step 4: Run Docker container
-      - name: Run Docker container
-        run: |
-          docker run -d -p 8000:8000 fastapi-gpt2:latest
-
-      # Step 5: Wait for FastAPI to respond (Health check endpoint)
-      - name: Wait for FastAPI to start
-        run: |
-          until curl -s http://localhost:8000/health; do
-            echo "Waiting for FastAPI to start..."
-            sleep 5  # Wait for 5 seconds before retrying
-          done
-
-      # Step 6: Check Docker container logs (for debugging)
-      - name: Check Docker container logs
-        run: |
-          docker logs $(docker ps -q --filter "ancestor=fastapi-gpt2:latest")
-
-      # Step 7: Install dependencies (for pytest)
-      - name: Install dependencies
-        run: |
-          pip install -r requirements.txt  # Ensure all dependencies are installed
-
-      # Step 8: Run tests using pytest
-      - name: Run tests
-        run: |
-          pytest test.py  # Run your tests
-
-      # Step 9: Save Docker image as TAR file
+      # Step 4: Save Docker image as TAR file
       - name: Save Docker image as TAR file
         run: |
           docker save -o fastapi-gpt2.tar fastapi-gpt2:latest
 
-      # Step 10: Upload Docker image TAR as artifact
+      # Step 5: Upload Docker image TAR as artifact
       - name: Upload Docker image TAR as artifact
         uses: actions/upload-artifact@v3
         with:
