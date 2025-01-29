@@ -1,19 +1,59 @@
-# Use official Python image as base
-FROM python:3.9-slim
+name: CI/CD for Dockerized FastAPI GPT-2 App
 
-# Set the working directory in the container
-WORKDIR /app
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:  # This allows for manual triggering
 
-# Copy requirements file and install dependencies
-COPY requirements.txt .
+jobs:
+  build-test-and-export:
+    runs-on: ubuntu-latest
 
-RUN pip install --no-cache-dir -r requirements.txt
+    steps:
+      # Step 1: Checkout code
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-# Copy the FastAPI app
-COPY . .
+      # Step 2: Set up Docker Buildx
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
 
-# Expose the port FastAPI will run on
-EXPOSE 8000
+      # Step 3: Build Docker image
+      - name: Build Docker image
+        run: |
+          docker build -t fastapi-gpt2:latest .
 
-# Command to run the FastAPI app with Uvicorn
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+      # Step 4: Run Docker container
+      - name: Run Docker container
+        run: |
+          docker run -d -p 8000:8000 fastapi-gpt2:latest
+
+      # Step 5: Wait for the container to be ready
+      - name: Wait for the container to start
+        run: sleep 10  # Wait a few seconds for the FastAPI app to initialize
+
+      # Step 6: Install dependencies (for pytest)
+      - name: Install dependencies
+        run: |
+          pip install pytest httpx
+
+      # Step 7: Run tests using pytest
+      - name: Run tests
+        run: |
+          pytest test.py
+
+      # Step 8: Save Docker image as TAR file
+      - name: Save Docker image as TAR file
+        run: |
+          docker save -o fastapi-gpt2.tar fastapi-gpt2:latest
+
+      # Step 9: Upload Docker image TAR as artifact
+      - name: Upload Docker image TAR as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: fastapi-gpt2-image
+          path: fastapi-gpt2.tar
