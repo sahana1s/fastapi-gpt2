@@ -7,7 +7,7 @@ on:
   pull_request:
     branches:
       - main
-  workflow_dispatch:  # This allows for manual triggering
+  workflow_dispatch:  # Allows for manual triggering
 
 jobs:
   build-test-and-export:
@@ -32,19 +32,23 @@ jobs:
         run: |
           docker run -d -p 8000:8000 fastapi-gpt2:latest
 
-      # Step 5: Wait for the container to be ready
-      - name: Wait for the container to start
-        run: sleep 10  # Wait a few seconds for the FastAPI app to initialize
+      # Step 5: Wait for FastAPI to respond
+      - name: Wait for FastAPI to start
+        run: |
+          until curl -s http://localhost:8000; do
+            echo "Waiting for FastAPI to start..."
+            sleep 5  # Wait for 5 seconds before retrying
+          done
 
       # Step 6: Install dependencies (for pytest)
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
+          pip install -r requirements.txt  # Ensure all dependencies are installed
 
       # Step 7: Run tests using pytest
       - name: Run tests
         run: |
-          pytest test.py
+          pytest test.py  # Run your tests
 
       # Step 8: Save Docker image as TAR file
       - name: Save Docker image as TAR file
